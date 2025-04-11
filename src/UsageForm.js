@@ -1,98 +1,98 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const UsageForm = () => {
   const [formData, setFormData] = useState({
-    type: "",
-    name: "",
-    length: "",
-    quantity: "",
-    project: "",
+    date: '',
+    type: '',
+    name: '',
+    length: '',
+    quantity: '',
+    project: '',
   });
 
   const [dropdownData, setDropdownData] = useState({
     types: [],
     names: [],
+    projects: [],
   });
 
-  const api = "https://sheetdb.io/api/v1/eaeyw4vt8tm8p";
+  const sheetUrl = 'https://sheetdb.io/api/v1/eaeyw4vt8tm8p';
 
   useEffect(() => {
-    fetch(api)
-      .then((res) => res.json())
-      .then((data) => {
-        const types = [...new Set(data.map((item) => item.type).filter(Boolean))];
-        const names = [...new Set(data.map((item) => item.name).filter(Boolean))];
-        setDropdownData({ types, names });
-      });
+    const fetchDropdownData = async () => {
+      try {
+        const res = await axios.get(`${sheetUrl}/search?sheet=Usage`);
+        const data = res.data;
+        setDropdownData({
+          types: [...new Set(data.map(row => row.type))],
+          names: [...new Set(data.map(row => row.name))],
+          projects: [...new Set(data.map(row => row.project))],
+        });
+      } catch (err) {
+        console.error('Error fetching dropdown data:', err);
+      }
+    };
+    fetchDropdownData();
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-
-    const payload = {
-      data: [
-        {
-          date: new Date().toLocaleDateString("en-CA"), // YYYY-MM-DD
-          ...formData,
-        },
-      ],
-    };
-
     try {
-      const response = await fetch(api + "?sheet=Usage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      await axios.post(sheetUrl, {
+        data: formData,
+        sheet: 'Usage',
       });
-
-      const resText = await response.text();
-      if (response.ok) {
-        alert("Usage logged!");
-        setFormData({
-          type: "",
-          name: "",
-          length: "",
-          quantity: "",
-          project: "",
-        });
-      } else {
-        alert("❌ Failed to log usage. Status: " + response.status + ", Response: " + resText);
-      }
+      alert('Usage submitted successfully!');
+      setFormData({
+        date: '',
+        type: '',
+        name: '',
+        length: '',
+        quantity: '',
+        project: '',
+      });
     } catch (error) {
-      console.error("Submit error:", error);
-      alert("Something went wrong while submitting.");
+      alert('Failed to submit usage');
+      console.error(error);
     }
   };
 
   return (
-    <>
-      <h2>Log Material Usage</h2>
-      <form onSubmit={handleSubmit}>
-        <input list="type-options" name="type" placeholder="Type" value={formData.type} onChange={handleChange} required />
-        <datalist id="type-options">
-          {dropdownData.types.map((val, i) => <option key={i} value={val} />)}
-        </datalist>
+    <form onSubmit={handleSubmit} className="form">
+      <label>Date:</label>
+      <input type="date" name="date" value={formData.date} onChange={handleChange} required />
 
-        <input list="name-options" name="name" placeholder="Name" value={formData.name} onChange={handleChange} required />
-        <datalist id="name-options">
-          {dropdownData.names.map((val, i) => <option key={i} value={val} />)}
-        </datalist>
+      <label>Type:</label>
+      <input list="types" name="type" value={formData.type} onChange={handleChange} required />
+      <datalist id="types">
+        {dropdownData.types.map((type, i) => <option key={i} value={type} />)}
+      </datalist>
 
-        <input name="length" placeholder="Length" value={formData.length} onChange={handleChange} required />
+      <label>Name:</label>
+      <input list="names" name="name" value={formData.name} onChange={handleChange} required />
+      <datalist id="names">
+        {dropdownData.names.map((name, i) => <option key={i} value={name} />)}
+      </datalist>
 
-        <input name="quantity" type="number" placeholder="Quantity" value={formData.quantity} onChange={handleChange} required />
+      <label>Length:</label>
+      <input type="number" name="length" value={formData.length} onChange={handleChange} required />
 
-        <input name="project" placeholder="Project" value={formData.project} onChange={handleChange} required />
+      <label>Quantity:</label>
+      <input type="number" name="quantity" value={formData.quantity} onChange={handleChange} required />
 
-        <button type="submit">Log Usage</button>
-      </form>
-    </>
+      <label>Project:</label>
+      <input list="projects" name="project" value={formData.project} onChange={handleChange} required />
+      <datalist id="projects">
+        {dropdownData.projects.map((project, i) => <option key={i} value={project} />)}
+      </datalist>
+
+      <button type="submit">Submit</button>
+    </form>
   );
 };
 
