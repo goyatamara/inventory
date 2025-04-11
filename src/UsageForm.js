@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
 const UsageForm = () => {
   const [formData, setFormData] = useState({
@@ -22,12 +21,12 @@ const UsageForm = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const res = await axios.get(`${sheetUrl}/search?sheet=Usage`);
-        const data = res.data;
+        const res = await fetch(`${sheetUrl}/search?sheet=Usage`);
+        const data = await res.json();
         setDropdownData({
-          types: [...new Set(data.map(row => row.type))],
-          names: [...new Set(data.map(row => row.name))],
-          projects: [...new Set(data.map(row => row.project))],
+          types: [...new Set(data.map(row => row.type).filter(Boolean))],
+          names: [...new Set(data.map(row => row.name).filter(Boolean))],
+          projects: [...new Set(data.map(row => row.project).filter(Boolean))],
         });
       } catch (err) {
         console.error('Error fetching dropdown data:', err);
@@ -43,27 +42,41 @@ const UsageForm = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      await axios.post(sheetUrl, {
-        data: formData,
-        sheet: 'Usage',
+      const response = await fetch(sheetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: [formData],
+          sheet: 'Usage',
+        }),
       });
-      alert('Usage submitted successfully!');
-      setFormData({
-        date: '',
-        type: '',
-        name: '',
-        length: '',
-        quantity: '',
-        project: '',
-      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('✅ Usage submitted successfully!');
+        setFormData({
+          date: '',
+          type: '',
+          name: '',
+          length: '',
+          quantity: '',
+          project: '',
+        });
+      } else {
+        console.error('Submit error:', result);
+        alert('❌ Failed to submit usage.');
+      }
     } catch (error) {
-      alert('Failed to submit usage');
-      console.error(error);
+      console.error('Network error:', error);
+      alert('❌ Error submitting usage.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="form">
+    <form onSubmit={handleSubmit} className="form" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <label>Date:</label>
       <input type="date" name="date" value={formData.date} onChange={handleChange} required />
 
